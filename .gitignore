@@ -1,0 +1,22 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# 가상환경
+venv/
+.venv/
+
+# 환경변수 파일
+.env
+.env.*
+
+# Docker 볼륨 (예: PostgreSQL 데이터)
+postgres_data/
+
+# IDE 설정 (선택적으로 무시)
+.vscode/
+
+# pytest, mypy 캐시 (테스트할 경우)
+.pytest_cache/
+.mypy_cache/
+
