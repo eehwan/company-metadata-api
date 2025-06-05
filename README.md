@@ -3,6 +3,10 @@
 
 회사 메타데이터 관리 API 서버
 
+- [Git Repo](https://github.com/eehwan/company-metadata-api)
+- [Swagger UI](http://eehwan.duckdns.org:8000/docs)
+- [ReDoc 문서](http://eehwan.duckdns.org:8000/redoc)
+
 ## 1. 프로젝트 클론
 ```bash
 git clone https://github.com/eehwan/company-metadata-api.git
