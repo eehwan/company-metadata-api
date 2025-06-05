@@ -17,9 +17,9 @@ services:
     container_name: company_api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - .:/code
+      - .:/dir
     environment:
-      - PYTHONPATH=/code
+      - PYTHONPATH=/dir
     ports:
       - "8000:8000"
     depends_on:

@@ -1,42 +1,17 @@
-from typing import List
 from pydantic import BaseModel
+from typing import List
 
 
 class CompanyNameOut(BaseModel):
-    language: str
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class TagNameOut(BaseModel):
-    language: str
-    name: str
-
-    class Config:
-        orm_mode = True
-
-
-class TagOut(BaseModel):
-    # id: int
-    names: List[TagNameOut]
-
-    class Config:
-        orm_mode = True
-
-
-class CompanyTagOut(BaseModel):
-    tag: TagOut
+    company_name: str
 
     class Config:
         orm_mode = True
 
 
 class CompanyOut(BaseModel):
-    id: int
-    names: List[CompanyNameOut]
-    tags: List[CompanyTagOut]
+    company_name: str
+    tags: List[str]
 
     class Config:
         orm_mode = True

@@ -1,110 +1,210 @@
-from fastapi import Depends
-from sqlalchemy import select, or_, and_, func
-from sqlalchemy.orm import selectinload, joinedload, with_loader_criteria
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, join
+from sqlalchemy.orm import selectinload, aliased
+from typing import List, Optional
+
 from app.models.company import Company, CompanyName, CompanyTag, Tag, TagName
+from app.schemas.company import CompanyNameOut
 
-# 전체 회사 조회
-async def get_all_companies(db: AsyncSession, language: str):
-    stmt = (
+
+def autocomplete_company_name(db: AsyncSession, query: str, lang: str) -> List[CompanyNameOut]:
+    result = db.execute(
         select(Company)
-        .options(
-            joinedload(Company.names),
-            selectinload(Company.tags)
-                .joinedload(CompanyTag.tag)
-                .joinedload(Tag.names),
-            with_loader_criteria(TagName, TagName.language == language)
-        )
-    )
-    result = await db.execute(stmt)
-    return result.scalars().unique().all()
-
-# 검색어(회사명) 자동완성
-async def autocomplete_company_names(query: str, db: AsyncSession):
-    stmt = (
-        select(func.distinct(CompanyName.name))
-        .where(
-            CompanyName.name.ilike(f"%{query}%")
-        )
-        .limit(10)
-    )
-    result = await db.execute(stmt)
-    return result.scalars().all()
-
-# 통합 검색
-async def search_companies(query: str, db: AsyncSession, language: str):
-    stmt_company_name = (
-        select(Company.id)
         .join(Company.names)
         .where(CompanyName.name.ilike(f"%{query}%"))
+        .options(selectinload(Company.names))
     )
+    companies = result.scalars().unique().all()
 
-    stmt_tag_name = (
-        select(Company.id)
-        .join(Company.tags)
-        .join(CompanyTag.tag)
-        .join(Tag.names)
-        .where(
-            func.lower(TagName.name) == query.lower(),
-            TagName.language == language
+    name_outputs = []
+    for company in companies:
+        rep_name = next((n.name for n in company.names if n.language == lang), None)
+        if not rep_name:
+            rep_name = next((n.name for n in company.names), None)
+        if rep_name:
+            name_outputs.append(CompanyNameOut(company_name=rep_name))
+
+    return name_outputs
+
+
+def get_company_by_name(db: AsyncSession, name: str, lang: str):
+    result = db.execute(
+        select(Company)
+        .join(Company.names)
+        .where(CompanyName.name == name)
+        .options(
+            selectinload(Company.names),
+            selectinload(Company.tags)
+            .selectinload(CompanyTag.tag)
+            .selectinload(Tag.names)
         )
     )
+    company = result.scalars().first()
+    if not company:
+        return None
 
-    result_name = await db.execute(stmt_company_name)
-    result_tag = await db.execute(stmt_tag_name)
+    rep_name = next((n.name for n in company.names if n.language == lang), None)
+    if not rep_name:
+        rep_name = next((n.name for n in company.names), "")
 
-    company_ids = set(id for (id,) in result_name.all() + result_tag.all())
-    if not company_ids:
+    tag_names = []
+    for ct in company.tags:
+        tag_name = next((tn.name for tn in ct.tag.names if tn.language == lang), None)
+        if not tag_name:
+            tag_name = next((tn.name for tn in ct.tag.names), None)
+        if tag_name:
+            tag_names.append(tag_name)
+    
+    return {
+        "company_name": rep_name,
+        "tags": sorted(set(tag_names), key=lambda x: int(x.split("_")[-1]))
+    }
+
+
+def search_companies_by_tag_name(db: AsyncSession, tag_name: str, lang: str) -> List[CompanyNameOut]:
+    result = db.execute(
+        select(Tag)
+        .join(Tag.names)
+        .where(TagName.name == tag_name)
+        .options(
+            selectinload(Tag.companies)
+            .selectinload(CompanyTag.company)
+            .selectinload(Company.names)
+        )
+    )
+    tag = result.scalars().first()
+    if not tag:
         return []
 
-    stmt = (
-        select(Company)
-        .options(
-            joinedload(Company.names),
-            joinedload(Company.tags)
-                .joinedload(CompanyTag.tag)
-                .joinedload(Tag.names),
-            with_loader_criteria(TagName, TagName.language == language)
-        )
-        .where(Company.id.in_(company_ids))
-    )
-    result = await db.execute(stmt)
-    companies = result.scalars().unique().all()
+    companies = []
+    for ct in tag.companies:
+        company = ct.company
+        rep_name = next((n.name for n in company.names if n.language == lang), None)
+        if not rep_name:
+            rep_name = next((n.name for n in company.names), None)
+        if rep_name:
+            companies.append(CompanyNameOut(company_name=rep_name))
+
     return companies
 
-# 회사명으로 검색
-async def search_companies_by_name(query: str, db: AsyncSession, language: str):
-    stmt = (
-        select(Company)
-        .join(Company.names)
-        .where(CompanyName.name.ilike(f"%{query}%"))
-        .options(
-            joinedload(Company.names),
-            selectinload(Company.tags)
-                .joinedload(CompanyTag.tag)
-                .joinedload(Tag.names),
-            with_loader_criteria(TagName, TagName.language == language)
-        )
-    )
-    result = await db.execute(stmt)
-    return result.scalars().unique().all()
 
 
-# 태그명으로 검색
-async def search_companies_by_tag_name(query: str, db: AsyncSession, language: str):
-    stmt = (
+def get_company_id_by_name(db: AsyncSession, name: str) -> Optional[int]:
+    result = db.execute(
+        select(Company).join(Company.names).where(CompanyName.name == name)
+    )
+    company = result.scalars().first()
+    return company.id if company else None
+
+
+def get_or_create_tag(db: AsyncSession, tag_name_dict: dict, commit: bool = True) -> Optional[int]:
+    existing_tag = None
+    for lang_code, name in tag_name_dict.items():
+        result = db.execute(
+            select(Tag)
+            .join(Tag.names)
+            .where(TagName.name == name, TagName.language == lang_code)
+            .options(selectinload(Tag.names))
+        )
+        existing_tag = result.scalars().first()
+        if existing_tag:
+            break
+
+    if not existing_tag:
+        new_tag = Tag()
+        db.add(new_tag)
+        db.flush()
+        for lang_code, name in tag_name_dict.items():
+            db.add(TagName(tag_id=new_tag.id, name=name, language=lang_code))
+        if commit:
+            db.commit()
+        return new_tag.id
+
+    existing_langs = {tn.language for tn in existing_tag.names}
+    added = False
+    for lang_code, name in tag_name_dict.items():
+        if lang_code not in existing_langs:
+            db.add(TagName(tag_id=existing_tag.id, name=name, language=lang_code))
+            added = True
+
+    if added and commit:
+        db.commit()
+
+    return existing_tag.id
+    
+
+
+def create_company(db: AsyncSession, body: dict, lang: str) -> Optional[int]:
+    company_name_data = body["company_name"]
+    tag_list = body["tags"]
+
+    company = Company()
+    db.add(company)
+    db.flush()
+
+    for lang, name in company_name_data.items():
+        db.add(CompanyName(name=name, language=lang, company_id=company.id))
+
+    for tag_dict in tag_list:
+        tag_name_data = tag_dict["tag_name"]
+        tag_id = get_or_create_tag(db, tag_name_data, commit=False)
+        db.add(CompanyTag(company_id=company.id, tag_id=tag_id))
+
+    db.commit()
+    return company.id
+
+def add_company_tag_relation(db: AsyncSession, company_id: int, tag_id: int):
+    result = db.execute(
+        select(CompanyTag).where(CompanyTag.company_id == company_id, CompanyTag.tag_id == tag_id)
+    )
+    if not result.scalar():
+        db.add(CompanyTag(company_id=company_id, tag_id=tag_id))
+        db.commit()
+
+
+def delete_company_tag_by_name(db: AsyncSession, company_id: int, tag_name: str):
+    tag_result = db.execute(
+        select(Tag).join(Tag.names).where(TagName.name == tag_name)
+    )
+    tag = tag_result.scalars().first()
+    if not tag:
+        return
+
+    db.execute(
+        delete(CompanyTag)
+        .where(CompanyTag.company_id == company_id)
+        .where(CompanyTag.tag_id == tag.id)
+    )
+    db.commit()
+
+
+def get_company_name_and_tags(db: AsyncSession, company_id: int, lang: str):
+    result = db.execute(
         select(Company)
-        .join(Company.tags)
-        .join(CompanyTag.tag)
-        .join(Tag.names)
-        .where(func.lower(TagName.name) == query.lower())
+        .where(Company.id == company_id)
         .options(
-            joinedload(Company.names),
-            selectinload(Company.tags)
-                .joinedload(CompanyTag.tag)
-                .joinedload(Tag.names),
-            with_loader_criteria(TagName, TagName.language == language)
+            selectinload(Company.names),
+            selectinload(Company.tags).selectinload(CompanyTag.tag).selectinload(Tag.names)
         )
     )
-    result = await db.execute(stmt)
-    return result.scalars().unique().all()
+    company = result.scalars().first()
+    if not company:
+        return None
+
+    name = next((n.name for n in company.names if n.language == lang), None)
+    if not name:
+        name = next((n.name for n in company.names), "")
+
+    tag_names = []
+    for ct in company.tags:
+        tag_name = next((n.name for n in ct.tag.names if n.language == lang), None)
+        if not tag_name:
+            tag_name = next((n.name for n in ct.tag.names), None)
+        if tag_name:
+            tag_names.append(tag_name)
+
+
+    return {
+        "company_name": name,
+        "tags": sorted(set(tag_names), key=lambda x: int(x.split("_")[-1]))
+    }

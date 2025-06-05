@@ -1,4 +1,11 @@
-from app.database import engine, Base
+import asyncio
+from app.database import engine
 from app.models import company
+from app.database import Base
 
-Base.metadata.create_all(bind=engine)
+def init_models():
+    with engine.begin() as conn:
+        conn.run_sync(Base.metadata.create_all)
+
+if __name__ == "__main__":
+    asyncio.run(init_models())
