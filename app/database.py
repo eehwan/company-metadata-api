@@ -32,3 +32,14 @@ def get_session():
         yield db
     finally:
         db.close()
+
+# def get_session():
+#     db: Session = SessionLocal()
+#     try:
+#         yield db
+#         db.commit()
+#     except Exception:
+#         db.rollback()
+#         raise
+#     finally:
+#         db.close()

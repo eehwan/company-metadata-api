@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
-from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database import get_session
@@ -13,7 +14,7 @@ router = APIRouter(tags=["companies"])
 def search_company_name(
     query: str,
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session)
+    db: Session = Depends(get_session)
 ):
     return crud.autocomplete_company_name(db, query, x_wanted_language)
 
@@ -22,7 +23,7 @@ def search_company_name(
 def get_company_by_name(
     company_name: str,
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session)
+    db: Session = Depends(get_session)
 ):
     company = crud.get_company_by_name(db, company_name, x_wanted_language)
     if not company:
@@ -34,7 +35,7 @@ def get_company_by_name(
 def search_by_tag(
     query: str,
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return crud.search_companies_by_tag_name(db, query, x_wanted_language)
 
@@ -44,7 +45,7 @@ def add_tag_to_company(
     company_name: str,
     tags: List[dict],
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     company_id = crud.get_company_id_by_name(db, company_name)
     if not company_id:
@@ -62,7 +63,7 @@ def add_tag_to_company(
 def create_company(
     body: dict,
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     company_id = crud.create_company(db, body, x_wanted_language)
     return crud.get_company_name_and_tags(db, company_id, x_wanted_language)
@@ -73,7 +74,7 @@ def remove_tag_from_company(
     company_name: str,
     tag_name: str,
     x_wanted_language: Optional[str] = Header(default="ko"),
-    db: AsyncSession = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     company_id = crud.get_company_id_by_name(db, company_name)
     if not company_id:

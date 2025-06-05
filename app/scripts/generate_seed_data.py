@@ -1,6 +1,7 @@
 import os
 import csv
 import psycopg2
+from pathlib import Path
 
 # 1. .env 로드
 
@@ -17,9 +18,12 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
+current_dir = Path(__file__).parent
+csv_path = current_dir / "company_tag_sample.csv"
+
 tag_data = {}  # (ko, en, ja) 조합 → tag_id
 
-with open("company_tag_sample.csv", newline="", encoding="utf-8") as f:
+with open(csv_path, newline="", encoding="utf-8") as f:
     reader = csv.DictReader(f)
     for row in reader:
         # 1. companies

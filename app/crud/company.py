@@ -1,4 +1,5 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, delete, join
 from sqlalchemy.orm import selectinload, aliased
 from typing import List, Optional
@@ -7,7 +8,7 @@ from app.models.company import Company, CompanyName, CompanyTag, Tag, TagName
 from app.schemas.company import CompanyNameOut
 
 
-def autocomplete_company_name(db: AsyncSession, query: str, lang: str) -> List[CompanyNameOut]:
+def autocomplete_company_name(db: Session, query: str, lang: str) -> List[CompanyNameOut]:
     result = db.execute(
         select(Company)
         .join(Company.names)
@@ -27,7 +28,7 @@ def autocomplete_company_name(db: AsyncSession, query: str, lang: str) -> List[C
     return name_outputs
 
 
-def get_company_by_name(db: AsyncSession, name: str, lang: str):
+def get_company_by_name(db: Session, name: str, lang: str):
     result = db.execute(
         select(Company)
         .join(Company.names)
@@ -55,13 +56,14 @@ def get_company_by_name(db: AsyncSession, name: str, lang: str):
         if tag_name:
             tag_names.append(tag_name)
     
+    # 순서가 특이
     return {
         "company_name": rep_name,
-        "tags": sorted(set(tag_names), key=lambda x: int(x.split("_")[-1]))
+        "tags": sorted(set(tag_names), reverse=True)
     }
 
 
-def search_companies_by_tag_name(db: AsyncSession, tag_name: str, lang: str) -> List[CompanyNameOut]:
+def search_companies_by_tag_name(db: Session, tag_name: str, lang: str) -> List[CompanyNameOut]:
     result = db.execute(
         select(Tag)
         .join(Tag.names)
@@ -89,7 +91,7 @@ def search_companies_by_tag_name(db: AsyncSession, tag_name: str, lang: str) -> 
 
 
 
-def get_company_id_by_name(db: AsyncSession, name: str) -> Optional[int]:
+def get_company_id_by_name(db: Session, name: str) -> Optional[int]:
     result = db.execute(
         select(Company).join(Company.names).where(CompanyName.name == name)
     )
@@ -97,7 +99,7 @@ def get_company_id_by_name(db: AsyncSession, name: str) -> Optional[int]:
     return company.id if company else None
 
 
-def get_or_create_tag(db: AsyncSession, tag_name_dict: dict, commit: bool = True) -> Optional[int]:
+def get_or_create_tag(db: Session, tag_name_dict: dict, commit: bool = True) -> Optional[int]:
     existing_tag = None
     for lang_code, name in tag_name_dict.items():
         result = db.execute(
@@ -134,7 +136,7 @@ def get_or_create_tag(db: AsyncSession, tag_name_dict: dict, commit: bool = True
     
 
 
-def create_company(db: AsyncSession, body: dict, lang: str) -> Optional[int]:
+def create_company(db: Session, body: dict, lang: str) -> Optional[int]:
     company_name_data = body["company_name"]
     tag_list = body["tags"]
 
@@ -153,7 +155,7 @@ def create_company(db: AsyncSession, body: dict, lang: str) -> Optional[int]:
     db.commit()
     return company.id
 
-def add_company_tag_relation(db: AsyncSession, company_id: int, tag_id: int):
+def add_company_tag_relation(db: Session, company_id: int, tag_id: int):
     result = db.execute(
         select(CompanyTag).where(CompanyTag.company_id == company_id, CompanyTag.tag_id == tag_id)
     )
@@ -162,7 +164,7 @@ def add_company_tag_relation(db: AsyncSession, company_id: int, tag_id: int):
         db.commit()
 
 
-def delete_company_tag_by_name(db: AsyncSession, company_id: int, tag_name: str):
+def delete_company_tag_by_name(db: Session, company_id: int, tag_name: str):
     tag_result = db.execute(
         select(Tag).join(Tag.names).where(TagName.name == tag_name)
     )
@@ -178,7 +180,7 @@ def delete_company_tag_by_name(db: AsyncSession, company_id: int, tag_name: str)
     db.commit()
 
 
-def get_company_name_and_tags(db: AsyncSession, company_id: int, lang: str):
+def get_company_name_and_tags(db: Session, company_id: int, lang: str):
     result = db.execute(
         select(Company)
         .where(Company.id == company_id)
