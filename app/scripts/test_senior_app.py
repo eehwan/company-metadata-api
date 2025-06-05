@@ -6,7 +6,7 @@ from app.main import app
 
 # ##    수정사항   ##
 # api를 fastapi용으로 수정
-# resp.json() -> resp.json()으로 변경
+# json.loads(resp.data.decode("utf-8")) -> resp.json()으로 변경
 @pytest.fixture
 def api():
     return TestClient(app)

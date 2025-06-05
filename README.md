@@ -29,8 +29,8 @@ docker-compose up -d
 ## 4. DB 초기화 및 데이터 삽입
 ```bash
 docker exec -it company_api bash
-python scripts/init_db.py
-python scripts/generate_seed_data.py
+python app/scripts/init_db.py
+python app/scripts/generate_seed_data.py
 ```
 
 ## [추가] 검색 성능 최적화 (자동완성 검색)
@@ -44,4 +44,15 @@ docker exec -it company_postgress psql -U $POSTGRES_USER -d $POSTGRES_DB
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX idx_company_name_trgm ON company_names USING gin (name gin_trgm_ops);
+```
+
+## [테스트 방법]
+
+flask기반 test코드라서 원본파일에서 약간의 수정
+> fastapi.testclient 사용 & json.loads(resp.data.decode("utf-8")) -> resp.json()
+
+```bash
+docker exec -it company_web bash
+
+pytest app/scripts/test_senior_app.py
 ```
