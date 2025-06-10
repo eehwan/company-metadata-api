@@ -7,6 +7,19 @@
 - [Swagger UI](http://eehwan.duckdns.org:8000/docs)
 - [ReDoc 문서](http://eehwan.duckdns.org:8000/redoc)
 
+## 작업 요약
+요구사항을 기반으로 기업, 태그, 언어별 번역 정보를 분리하여 1차, 2차 정규화된 구조로 테이블을 설계했습니다.
+테이블 간 관계를 적절하게 설정하여 다국어 확장이 가능하도록 구성했습니다.
+
+검색 API에서는 회사 정보와 태그가 언어 우선순위로 정렬하여 사용자 언어에 맞는 결과가 노출되도록 처리했습니다.
+
+마이그레이션 및 더미 데이터 입력은 app/scripts/ 디렉토리 스크립트로 자동화하였고,
+제공된 test_senior_app.py 기준으로 모든 테스트가 정상적으로 통과됩니다.
+
+## 추가가 필요한 부분
+response에 대한 DTO만 정의 되어 있어, 나머지에 대한 DTO도 필요함
+testcode가 async기반으로 동작하지 않아, 시간상 sync기반으로 수정을 해놨는데 확인 후, 재변경 필요
+
 ## 1. 프로젝트 클론
 ```bash
 git clone https://github.com/eehwan/company-metadata-api.git
