@@ -58,5 +58,10 @@ flask기반 test코드라서 원본파일에서 약간의 수정
 ```bash
 docker exec -it company_web bash
 
+# 디비가 세팅되어있지 않다면 테스트 전, 아래의 작업 필요!
+python app/scripts/init_db.py
+python app/scripts/generate_seed_data.py
+
+# pytest
 pytest app/scripts/test_senior_app.py
 ```
