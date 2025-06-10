@@ -17,8 +17,8 @@
 제공된 test_senior_app.py 기준으로 모든 테스트가 정상적으로 통과됩니다.
 
 ## 추가가 필요한 부분
-response에 대한 DTO만 정의 되어 있어, 나머지에 대한 DTO도 필요함
-testcode가 async기반으로 동작하지 않아, 시간상 sync기반으로 수정을 해놨는데 확인 후, 재변경 필요
+- response에 대한 DTO만 정의 되어 있어, 나머지에 대한 DTO도 필요함
+- testcode가 async기반으로 동작하지 않아, 시간상 sync기반으로 수정을 해놨는데 확인 후, 재변경 필요
 
 ## 1. 프로젝트 클론
 ```bash
