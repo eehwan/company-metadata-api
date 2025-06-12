@@ -14,7 +14,7 @@
 검색 API에서는 회사 정보와 태그가 언어 우선순위로 정렬하여 사용자 언어에 맞는 결과가 노출되도록 처리했습니다.
 
 마이그레이션 및 더미 데이터 입력은 app/scripts/ 디렉토리 스크립트로 자동화하였고,
-제공된 test_senior_app.py 기준으로 모든 테스트가 정상적으로 통과됩니다.
+test_senior_app.py 기준으로 모든 테스트가 정상적으로 통과됩니다.
 
 ## 추가가 필요한 부분
 - response에 대한 DTO만 정의 되어 있어, 나머지에 대한 DTO도 필요함
@@ -64,9 +64,6 @@ CREATE INDEX idx_company_name_trgm ON company_names USING gin (name gin_trgm_ops
 ```
 
 ## [테스트 방법]
-
-flask기반 test코드라서 원본파일에서 약간의 수정
-> fastapi.testclient 사용 & json.loads(resp.data.decode("utf-8")) -> resp.json()
 
 ```bash
 docker exec -it company_web bash
