@@ -4,8 +4,8 @@
 회사 메타데이터 관리 API 서버
 
 - [Git Repo](https://github.com/eehwan/company-metadata-api)
-- [Swagger UI](http://eehwan.duckdns.org:8000/docs)
-- [ReDoc 문서](http://eehwan.duckdns.org:8000/redoc)
+- [Swagger UI](http://company.eehwan.duckdns.org/docs)
+- [ReDoc 문서](http://company.eehwan.duckdns.org/redoc)
 
 ## 작업 요약
 요구사항을 기반으로 기업, 태그, 언어별 번역 정보를 분리하여 1차, 2차 정규화된 구조로 테이블을 설계했습니다.
