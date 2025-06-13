@@ -52,7 +52,7 @@ def search_by_tag(
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
-    return crud.search_companies_by_tag_name(db, query, x_wanted_language)
+    return crud.search_companies_by_tag_name(db, tag_name, x_wanted_language)
 
 
 @router.put("/companies/{company_name}/tags", response_model=CompanyOut)
@@ -63,7 +63,28 @@ def add_tag_to_company(
         description="대상 회사명",
         example="원티드랩"
     )],
-    tags: List[TagNameIn],
+    tags: Annotated[
+        List[TagNameIn],
+        Body(
+            openapi_examples={
+                "add_single_tag": {
+                    "summary": "단일 태그 추가 예시",
+                    "description": "회사에 새로운 태그 하나를 추가하는 요청입니다.",
+                    "value": [
+                        {"tag_name": {"ko": "태그_1", "en": "tag_1", "ja": "タグ_1"}}
+                    ],
+                },
+                "add_multiple_tags": {
+                    "summary": "복수 태그 추가 예시",
+                    "description": "회사에 여러 태그를 동시에 추가하는 요청입니다.",
+                    "value": [
+                        {"tag_name": {"ko": "태그_1", "en": "tag_1", "ja": "タグ_1"}},
+                        {"tag_name": {"ko": "태그_2", "en": "tag_2", "ja": "タグ_2"}}
+                    ],
+                },
+            }
+        )
+    ],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
@@ -72,7 +93,7 @@ def add_tag_to_company(
         raise HTTPException(status_code=404, detail="Company not found")
 
     for tag_entry in tags:
-        tag_name_dict = tag_entry.get("tag_name", {})
+        tag_name_dict = tag_entry.tag_name
         tag_id = crud.get_or_create_tag(db, tag_name_dict)
         crud.add_company_tag_relation(db, company_id, tag_id)
 
@@ -81,7 +102,24 @@ def add_tag_to_company(
 
 @router.post("/companies", response_model=CompanyOut)
 def create_company(
-    body: CompanyCreateIn,
+    body: Annotated[
+        CompanyCreateIn,
+        Body(
+            openapi_examples={
+                "create_new_company": {
+                    "summary": "새로운 회사 생성 예시",
+                    "description": "회사명과 여러 태그를 포함하여 새로운 회사를 생성합니다.",
+                    "value": {
+                        "company_name": {"ko": "새로운회사", "en": "NewCompany", "ja": "新しい会社"},
+                        "tags": [
+                            {"tag_name": {"ko": "태그_1", "en": "tag_1", "ja": "タグ_1"}},
+                            {"tag_name": {"ko": "태그_2", "en": "tag_2", "ja": "タグ_2"}}
+                        ]
+                    },
+                },
+            }
+        )
+    ],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
