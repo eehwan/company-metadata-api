@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Body, Path, Query
 # from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
 from app.database import get_session
-from app.schemas.company import CompanyOut, CompanyNameOut
+from app.schemas.company import TagNameIn, CompanyCreateIn, CompanyOut, CompanyNameOut
 from app.crud import company as crud
 
 router = APIRouter(tags=["companies"])
@@ -12,7 +12,12 @@ router = APIRouter(tags=["companies"])
 
 @router.get("/search", response_model=List[CompanyNameOut])
 def search_company_name(
-    query: str,
+    query: Annotated[str, Query(
+        min_length=1,
+        max_length=20,
+        description="회사명 포함 검색어",
+        example="크"
+    )],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session)
 ):
@@ -21,7 +26,12 @@ def search_company_name(
 
 @router.get("/companies/{company_name}", response_model=CompanyOut)
 def get_company_by_name(
-    company_name: str,
+    company_name: Annotated[str, Path(
+        min_length=1,
+        max_length=20,
+        description="회사명 검색어",
+        example="원티드랩"
+    )],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session)
 ):
@@ -33,7 +43,12 @@ def get_company_by_name(
 
 @router.get("/tags", response_model=List[CompanyNameOut])
 def search_by_tag(
-    query: str,
+    tag_name: Annotated[str, Query(
+        min_length=1,
+        max_length=20,
+        description="태그명 검색어",
+        example="태그_1"
+    )],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
@@ -42,8 +57,13 @@ def search_by_tag(
 
 @router.put("/companies/{company_name}/tags", response_model=CompanyOut)
 def add_tag_to_company(
-    company_name: str,
-    tags: List[dict],
+    company_name: Annotated[str, Path(
+        min_length=1,
+        max_length=20,
+        description="대상 회사명",
+        example="원티드랩"
+    )],
+    tags: List[TagNameIn],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
@@ -61,7 +81,7 @@ def add_tag_to_company(
 
 @router.post("/companies", response_model=CompanyOut)
 def create_company(
-    body: dict,
+    body: CompanyCreateIn,
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
@@ -71,8 +91,18 @@ def create_company(
 
 @router.delete("/companies/{company_name}/tags/{tag_name}", response_model=CompanyOut)
 def remove_tag_from_company(
-    company_name: str,
-    tag_name: str,
+    company_name: Annotated[str, Path(
+        min_length=1,
+        max_length=20,
+        description="대상 회사명",
+        example="원티드랩"
+    )],
+    tag_name: Annotated[str, Path(
+        min_length=1,
+        max_length=20,
+        description="삭제할 태그명",
+        example="태그_1"
+    )],
     x_wanted_language: Optional[str] = Header(default="ko"),
     db: Session = Depends(get_session),
 ):
