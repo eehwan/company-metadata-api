@@ -6,11 +6,12 @@ services:
     container_name: wanted_api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - .:/dir
+      - .:/code
     environment:
-      - PYTHONPATH=/dir
+      - PYTHONPATH=/code
     env_file:
       - .env
+    restart: on-failure
     networks:
       - shared_net
 
